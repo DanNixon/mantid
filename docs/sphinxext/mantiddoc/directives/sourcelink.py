@@ -2,13 +2,19 @@ from __future__ import (absolute_import, division, print_function)
 from .base import AlgorithmBaseDirective #pylint: disable=unused-import
 import mantid
 import os
+import subprocess
 from six import iteritems
+
+LAST_MODIFIED_UNKNOWN = 'unknown'
+
 
 class SourceLinkError(Exception):
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return str(self.value)
+
 
 class SourceLinkDirective(AlgorithmBaseDirective):
     """
@@ -66,25 +72,26 @@ class SourceLinkDirective(AlgorithmBaseDirective):
             if (self.algorithm_version() != 1) and (self.algorithm_version() is not None):
                 file_name += str(self.algorithm_version())
 
-
         for extension in self.file_types.keys():
             file_paths[extension] = self.options.get(extension, None)
             if file_paths[extension] is None:
                 try:
-                    file_paths[extension] = self.find_source_file(file_name,extension)
+                    fname = self.find_source_file(file_name,extension)
+                    file_paths[extension] = (fname, self.get_file_last_modified(fname)) if fname is not None else None
                 except SourceLinkError as err:
                     error_string += str(err) + "\n"
             elif file_paths[extension].lower() == "none":
                 # the users has specifically chosen to suppress this - set it to a "proper" None
-                #but do not search for this file
+                # but do not search for this file
                 file_paths[extension] = None
             else:
-                #prepend the base framework directory
-                file_paths[extension] = os.path.join(self.source_root, file_paths[extension])
-                if not os.path.exists(file_paths[extension]):
-                    error_string +="Cannot find " + extension + " file at " + file_paths[extension] + "\n"
+                # prepend the base framework directory
+                fname = os.path.join(self.source_root, file_paths[extension])
+                file_paths[extension] = (fname, self.get_file_last_modified(fname))
+                if not os.path.exists(file_paths[extension][0]):
+                    error_string +="Cannot find " + extension + " file at " + file_paths[extension][0] + "\n"
 
-        #throw accumulated errors now if you have any
+        # throw accumulated errors now if you have any
         if error_string != "":
             raise SourceLinkError(error_string)
 
@@ -97,6 +104,16 @@ class SourceLinkDirective(AlgorithmBaseDirective):
             raise SourceLinkError(error_string)
 
         return []
+
+    def get_file_last_modified(self, filename):
+        if not filename:
+            return LAST_MODIFIED_UNKNOWN
+
+        p = subprocess.Popen(
+                ['git', 'log', '-n 1', '--pretty=format:%cD', filename],
+                cwd=self.source_root,
+                stdout=subprocess.PIPE)
+        return p.stdout.read()
 
     def find_source_file(self, file_name, extension):
         """
@@ -212,8 +229,8 @@ class SourceLinkDirective(AlgorithmBaseDirective):
         """
         Outputs the source link for a file to the rst page
         """
-        dummy_dirName,fName = os.path.split(filepath)
-        self.add_rst(self.file_types[extension] + ": `" + fName + " <" + self.convert_path_to_github_url(filepath) + ">`_\n\n")
+        dummy_dirName,fName = os.path.split(filepath[0])
+        self.add_rst(self.file_types[extension] + ": `" + fName + " <" + self.convert_path_to_github_url(filepath[0]) + ">`_ *(last modified: " + filepath[1] + ")*\n\n")
         return
 
 
@@ -234,6 +251,7 @@ class SourceLinkDirective(AlgorithmBaseDirective):
             url = "/"+url
         url = "https://github.com/mantidproject/mantid/blob/" + mantid.kernel.revision_full() + url
         return url
+
 
 def setup(app):
     """
