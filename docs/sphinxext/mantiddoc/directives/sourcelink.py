@@ -112,13 +112,7 @@ class SourceLinkDirective(AlgorithmBaseDirective):
         if error_string != "":
             raise SourceLinkError(error_string)
 
-        try:
-            self.output_to_page(file_paths, file_name, sanity_checks)
-        except SourceLinkError as err:
-            error_string += str(err) + "\n"
-
-        if error_string != "":
-            raise SourceLinkError(error_string)
+        self.output_to_page(file_paths, file_name, sanity_checks)
 
         return []
 
@@ -235,7 +229,13 @@ class SourceLinkDirective(AlgorithmBaseDirective):
         Outputs the source link for a file to the rst page
         """
         _, f_name = os.path.split(filepath[0])
-        self.add_rst(self.file_types[extension] + ": `" + f_name + " <" + self.convert_path_to_github_url(filepath[0]) + ">`_ *(last modified: " + filepath[1] + ")*\n\n")
+
+        self.add_rst("{}: `{} <{}>`_ *(last modified: {})*\n\n".format(
+            self.file_types[extension],
+            f_name,
+            self.convert_path_to_github_url(filepath[0]),
+            filepath[1]
+        ))
 
     def convert_path_to_github_url(self, file_path):
         """
