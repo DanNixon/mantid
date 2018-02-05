@@ -1,13 +1,10 @@
 from __future__ import (absolute_import, division, print_function)
 
 import os
-import subprocess
 from six import iteritems
 
 import mantid
 from .base import AlgorithmBaseDirective #pylint: disable=unused-import
-
-LAST_MODIFIED_UNKNOWN = 'unknown'
 
 
 class SourceLinkError(Exception):
@@ -65,9 +62,6 @@ class SourceLinkDirective(AlgorithmBaseDirective):
         "py": "Python"
     }
     file_lookup = {}
-
-    # will be filled in
-    __source_root = None
 
 
     def execute(self):
@@ -146,20 +140,6 @@ class SourceLinkDirective(AlgorithmBaseDirective):
         except KeyError:
             # value is not present
             return None
-
-    @property
-    def source_root(self):
-        """
-        returns the root source directory
-        """
-        if self.__source_root is None:
-            env = self.state.document.settings.env
-            direc = env.srcdir #= C:\Mantid\Code\Mantid\docs\source
-            direc = os.path.join(direc, "..", "..") # assume root is two levels up
-            direc = os.path.abspath(direc)
-            self.__source_root = direc #pylint: disable=protected-access
-
-        return self.__source_root
 
     def parse_source_tree(self):
         """
@@ -254,19 +234,6 @@ class SourceLinkDirective(AlgorithmBaseDirective):
             url = "/" + url
         url = "https://github.com/mantidproject/mantid/blob/" + mantid.kernel.revision_full() + url
         return url
-
-    def get_file_last_modified(self, filename):
-        """
-        Gets the commit timestamp of the last commit to modify a given file.
-        """
-        if not filename:
-            return LAST_MODIFIED_UNKNOWN
-
-        proc = subprocess.Popen(
-            ['git', 'log', '-n 1', '--pretty=format:%cD', filename],
-            cwd=self.source_root,
-            stdout=subprocess.PIPE)
-        return proc.stdout.read()
 
 
 def setup(app):

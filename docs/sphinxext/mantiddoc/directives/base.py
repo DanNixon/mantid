@@ -1,6 +1,11 @@
+import re
+import os
+import subprocess
+
 from docutils import statemachine
 from docutils.parsers.rst import Directive #pylint: disable=unused-import
-import re
+
+import mantid
 
 ALG_DOCNAME_RE = re.compile(r'^([A-Z][a-zA-Z0-9]+)-v([0-9][0-9]*)$')
 FIT_DOCNAME_RE = re.compile(r'^([A-Z][a-zA-Z0-9]+)$')
@@ -56,6 +61,8 @@ class BaseDirective(Directive):
 
     rst_lines = None
 
+    _source_root = None
+
     def add_rst(self, text):
         """
         Appends given reST into a managed list. It is NOT inserted into the
@@ -73,14 +80,8 @@ class BaseDirective(Directive):
         """
         Inserts the currently tracked rst lines into the state_machine
         """
-        self.state_machine.insert_input(self.rst_lines, self.source())
+        self.state_machine.insert_input(self.rst_lines, self.doc_source_filename)
         self.rst_lines = []
-
-    def source(self):
-        """
-        Returns the full path to the source document
-        """
-        return self.state.document.settings.env.docname
 
     def make_header(self, name, pagetitle=False):
         """
@@ -99,6 +100,65 @@ class BaseDirective(Directive):
         else:
             line = "\n" + "-" * len(name) + "\n"
             return name + line
+
+    @property
+    def doc_source_directory(self):
+        return self.state.document.settings.env.srcdir
+
+    @property
+    def doc_source_filename(self):
+        return '{}.rst'.format(self.state.document.settings.env.docname)
+
+    @property
+    def doc_source_full_filename(self):
+        return os.path.join(
+            self.doc_source_directory,
+            self.doc_source_filename)
+
+    @property
+    def source_root(self):
+        """
+        returns the root source directory
+        """
+        if self._source_root is None:
+            direc = self.doc_source_directory
+            direc = os.path.join(direc, "..", "..") # assume root is two levels up
+            direc = os.path.abspath(direc)
+            self._source_root = direc
+
+        return self._source_root
+
+    def convert_path_to_github_url(self, file_path):
+        """
+        Converts a file path to the github url for that same file
+
+        example path C:\Mantid\Code\Mantid/Framework/Algorithms/inc/MantidAlgorithms/MergeRuns.h
+        example url  https://github.com/mantidproject/mantid/blob/master/Code/Mantid/Framework/Algorithms/inc/MantidAlgorithms/MergeRuns.h
+        """
+        url = file_path
+        # remove the directory path
+        url = url.replace(self.source_root, "")
+        # harmonize slashes
+        url = url.replace("\\", "/")
+        # prepend the github part
+        if not url.startswith("/"):
+            url = "/" + url
+        url = "https://github.com/mantidproject/mantid/blob/" + mantid.kernel.revision_full() + url
+        return url
+
+    def get_file_last_modified(self, filename):
+        """
+        Gets the commit timestamp of the last commit to modify a given file.
+        """
+        if not filename:
+            return None
+
+        proc = subprocess.Popen(
+            ['git', 'log', '-n1', '--pretty=format:%cD', filename],
+            cwd=self.source_root,
+            stdout=subprocess.PIPE)
+
+        return proc.stdout.read()
 
 #----------------------------------------------------------------------------------------
 
@@ -213,4 +273,5 @@ class AlgorithmBaseDirective(BaseDirective):
         document. The expected name of the document is "AlgorithmName-v?", which
         is the name of the file with the extension removed
         """
-        (self.algm_name, self.algm_version) = algorithm_name_and_version(self.source())
+        (self.algm_name, self.algm_version) = algorithm_name_and_version(
+            self.state.document.settings.env.docname)

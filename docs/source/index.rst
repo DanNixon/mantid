@@ -52,4 +52,4 @@ This is the documentation for Mantid |release|.
     - `C++ <http://doxygen.mantidproject.org/>`_ (Doxygen)
 * `Release Notes <release/index.html>`_
 
-
+.. lastmodified::

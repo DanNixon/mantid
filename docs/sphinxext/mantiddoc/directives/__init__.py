@@ -13,6 +13,7 @@ import mantiddoc.directives.attributes
 import mantiddoc.directives.categories
 import mantiddoc.directives.diagram
 import mantiddoc.directives.interface
+import mantiddoc.directives.lastmodified
 import mantiddoc.directives.properties
 import mantiddoc.directives.sourcelink
 import mantiddoc.directives.summary
@@ -29,6 +30,7 @@ def setup(app):
     attributes.setup(app)
     categories.setup(app)
     diagram.setup(app)
+    lastmodified.setup(app)
     interface.setup(app)
     properties.setup(app)
     sourcelink.setup(app)
