@@ -401,7 +401,7 @@ void KafkaEventStreamDecoder::eventDataFromMessage(const std::string &buffer,
                    std::back_inserter(m_receivedEventBuffer),
                    [&](uint64_t detId, uint64_t tof) -> BufferedEvent {
                      const auto workspaceIndex =
-                         m_specToIdx[detId + m_specToIdxOffset];
+                         m_detIdToIdx[detId + m_detIdToIdxOffset];
                      return {workspaceIndex, tof, pulseIndex};
                    });
   }
@@ -572,9 +572,9 @@ void KafkaEventStreamDecoder::initLocalCaches(
   mutableRun.addProperty(
       new Kernel::TimeSeriesProperty<double>(PROTON_CHARGE_PROPERTY));
 
-  // Cache spec->index mapping. We assume it is the same across all periods
-  m_specToIdx =
-      eventBuffer->getSpectrumToWorkspaceIndexVector(m_specToIdxOffset);
+  // Cache detID->index mapping. We assume it is the same across all periods
+  m_detIdToIdx = eventBuffer->getDetectorIDToWorkspaceIndexVector(
+      m_detIdToIdxOffset, false);
 
   // Buffers for each period
   const size_t nperiods = runStartData.nPeriods;

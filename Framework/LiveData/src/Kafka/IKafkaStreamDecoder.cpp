@@ -50,7 +50,7 @@ IKafkaStreamDecoder::IKafkaStreamDecoder(std::shared_ptr<IKafkaBroker> broker,
                                          const std::string &sampleEnvTopic)
     : m_broker(broker), m_streamTopic(streamTopic),
       m_runInfoTopic(runInfoTopic), m_spDetTopic(spDetTopic),
-      m_sampleEnvTopic(sampleEnvTopic), m_interrupt(false), m_specToIdx(),
+      m_sampleEnvTopic(sampleEnvTopic), m_interrupt(false), m_detIdToIdx(),
       m_runStart(), m_runNumber(-1), m_thread(), m_capturing(false),
       m_exception(), m_extractWaiting(false), m_cbIterationEnd([] {}),
       m_cbError([] {}) {}

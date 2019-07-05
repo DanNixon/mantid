@@ -136,9 +136,9 @@ protected:
   std::atomic<bool> m_interrupt;
   /// Subscriber for the data stream
   std::unique_ptr<IKafkaStreamSubscriber> m_dataStream;
-  /// Mapping of spectrum number to workspace index.
-  std::vector<size_t> m_specToIdx;
-  specnum_t m_specToIdxOffset;
+  /// Mapping of detector ID to workspace index.
+  std::vector<size_t> m_detIdToIdx;
+  detid_t m_detIdToIdxOffset;
   /// Start time of the run
   Types::Core::DateAndTime m_runStart;
   /// Subscriber for the run info stream
